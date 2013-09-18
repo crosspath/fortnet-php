@@ -14,14 +14,10 @@ class EntersHelper
       return 'н/д';
     $first = array_shift($rows);
     $last = array_pop($rows);
-    $first_dt = new DateTime($first['DATETIME']);
-    $last_dt = new DateTime($last['DATETIME']);
     
-    $total = $last_dt -> diff($first_dt) -> format('%h:%I');
-    $minus_1h = $last_dt -> sub(DateInterval :: createFromDateString('1 hours'));
-    $subtracted = $minus_1h -> diff($first_dt) -> format('%h:%I');
+    list($total, $rest, $subtracted) = Record :: work_time($first['DATETIME'], $last['DATETIME']);
     
-    return "$total &ndash; 1:00 =  $subtracted";
+    return "$total &ndash; $rest:00 =  $subtracted";
   }
   
   protected static $sensors_struct = array(
