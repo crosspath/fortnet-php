@@ -1,0 +1,65 @@
+* {
+  font-family: sans-serif;
+}
+
+body, html {
+  padding: 0;
+  margin: 0;
+}
+
+#top {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  background-color: teal;
+  border-bottom: 2px solid hsl(180, 40%, 25%);
+}
+
+#body {
+  width: 800px;
+  margin: 50px auto 0;
+}
+
+.center {
+  margin: 0 auto;
+}
+
+#top > .center {
+  /*width: 800px;*/
+  text-align: center;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+h1 {
+  text-align: center;
+  color: hsl(180, 40%, 25%);
+}
+
+.day {
+  border-bottom: 1px dashed lightgray;
+}
+
+h2 span, h3 span {
+  border-bottom: 1px dotted teal;
+}
+
+.person {
+  margin-bottom: 10px;
+}
+
+.visits {
+  border-collapse: collapse;
+}
+/*
+.visits tbody tr:nth-child(2n+1) {
+  background-color: hsl(180, 10%, 90%);
+}
+*/
+.visits td, .visits th {
+  padding: 4px 8px;
+}
+
+.visits td {
+  border-top: 1px solid hsl(180, 10%, 90%);
+}
