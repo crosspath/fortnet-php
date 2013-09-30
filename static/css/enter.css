@@ -42,6 +42,7 @@ h1 {
 
 h2 span, h3 span {
   border-bottom: 1px dotted teal;
+  cursor: pointer;
 }
 
 .person {
@@ -62,4 +63,16 @@ h2 span, h3 span {
 
 .visits td {
   border-top: 1px solid hsl(180, 10%, 90%);
+}
+
+.reduced {
+  color: hsl(180, 100%, 25%);
+}
+
+.export {
+  float: right;
+  background-image: url(../images/excel.png);
+  width: 32px;
+  height: 32px;
+  margin-right: 20px;
 }

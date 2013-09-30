@@ -2,6 +2,12 @@
 
 class EntersHelper
 {
+  public function export($f)
+  {
+    $person = $f['person'] ? "---{$f['person']}" : '';
+    return "{$f['date_start']}---{$f['date_end']}{$person}.xlsx";
+  }
+  
   public function extract_time($v)
   {
     $dt = explode(' ', $v);

@@ -23,7 +23,7 @@ class Person
     // группировка: {id => row, ...}
     $ppl = array();
     foreach ($rows as $row)
-      $ppl[$row['ID']] = $row['NAME'];
+      $ppl[$row['ID']] = trim($row['NAME']);
     asort($ppl);
     return $ppl;
   }

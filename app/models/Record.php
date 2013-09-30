@@ -25,9 +25,20 @@ class Record
     $order = 'THIS_DAY, USER_ID';
     $group = $order;
     $visits = $db -> select("SELECT $select FROM record $where GROUP BY $group ORDER BY $order", $params);
-    foreach ($visits as $k => &$v)
-      $v['DIFF'] = Record :: work_time($v['MIN_DATETIME'], $v['MAX_DATETIME']);
-    return $visits;
+    return self :: work_time_array($visits);
+  }
+  
+  public static function visits_group_by_person($user_id, $date_start, $date_end, $ppl)
+  {
+    $db = Db :: get();
+    $sql_date = 'cast(r_dt as date)';
+    $select = "$sql_date as THIS_DAY, min(R_DT) as MIN_DATETIME, max(R_DT) as MAX_DATETIME, R_P as USER_ID";
+    list($params, $where) = self :: visits_filter($user_id, $date_start, $date_end);
+    $order = 'USER_ID, THIS_DAY';
+    $group = $order;
+    $visits = $db -> select("SELECT $select FROM record $where GROUP BY $group ORDER BY $order", $params);
+    self :: work_time_array($visits);
+    return self :: group_by_person($visits, $ppl);
   }
   
   protected static function visits_filter($user_id, $date_start, $date_end)
@@ -82,9 +93,30 @@ class Record
     return $vis;
   }
   
+  protected static function group_by_person($visits, $ppl)
+  {
+    $vis = array();
+    foreach ($visits as $row)
+    {
+      $name = $ppl[$row['USER_ID']];
+      self :: array_array($vis, $name);
+      $vis[$name][] = $row;
+    }
+    foreach ($vis as $day => &$people)
+      ksort($people);
+    return $vis;
+  }
+  
   protected static function array_array(&$array, $key)
   {
     if (!isset($array[$key])) $array[$key] = array();
+  }
+  
+  protected static function work_time_array(&$visits)
+  {
+    foreach ($visits as $k => &$v)
+      $v['DIFF'] = Record :: work_time($v['MIN_DATETIME'], $v['MAX_DATETIME']);
+    return $visits;
   }
   
   public static function work_time($first, $last)

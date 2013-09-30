@@ -3,6 +3,8 @@
 <head>
   <title>Система пропусков</title>
   <link rel="stylesheet" href="static/css/enter.css">
+  <script type="text/javascript" src="static/js/zepto.min.js"></script>
+  <script type="text/javascript" src="static/js/enters.js"></script>
 </head>
 <body>
   <div id="top">
@@ -17,6 +19,7 @@
   </div>
   <div id="body">
     <h1>Регистрация входов и выходов по пропуску</h1>
+    <a href="<?php echo $h -> export($fact_filter); ?>" class="export" title="Excel"></a>
     <?php foreach ($visits as $day => $dpeople): ?>
     <div class="day">
       <h2><span><?php echo $day; ?></span></h2>
