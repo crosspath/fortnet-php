@@ -37,7 +37,7 @@ class Record
     $order = 'USER_ID, THIS_DAY';
     $group = $order;
     $visits = $db -> select("SELECT $select FROM record $where GROUP BY $group ORDER BY $order", $params);
-    self :: work_time_array($visits);
+    self :: work_time_array($visits, false);
     return self :: group_by_person($visits, $ppl);
   }
   
@@ -102,8 +102,10 @@ class Record
       self :: array_array($vis, $name);
       $vis[$name][] = $row;
     }
-    foreach ($vis as $day => &$people)
-      ksort($people);
+    /*foreach ($vis as $day => &$people)
+      ksort($people);*/
+    ksort($vis);
+    //var_dump($vis);die();
     return $vis;
   }
   
@@ -112,14 +114,14 @@ class Record
     if (!isset($array[$key])) $array[$key] = array();
   }
   
-  protected static function work_time_array(&$visits)
+  protected static function work_time_array(&$visits, $format_diff = true)
   {
     foreach ($visits as $k => &$v)
-      $v['DIFF'] = Record :: work_time($v['MIN_DATETIME'], $v['MAX_DATETIME']);
+      $v['DIFF'] = Record :: work_time($v['MIN_DATETIME'], $v['MAX_DATETIME'], $format_diff);
     return $visits;
   }
   
-  public static function work_time($first, $last)
+  public static function work_time($first, $last, $format_diff = true)
   {
     $first_dt = new DateTime($first);
     $last_dt = new DateTime($last);
@@ -128,15 +130,30 @@ class Record
     $total = $diff -> format('%h:%I');
     if ($diff -> h * 60 + $diff -> i <= 60)
     {
-      $subtracted = $total;
+      $subtracted = $diff;
       $rest = 0;
     }
     else
     {
       $minus_1h = $last_dt -> sub(DateInterval :: createFromDateString('1 hours'));
-      $subtracted = $minus_1h -> diff($first_dt) -> format('%h:%I');
+      $subtracted = $minus_1h -> diff($first_dt);
       $rest = 1;
     }
+    if ($format_diff)
+      $subtracted = $subtracted -> format('%h:%I');
     return array($total, $rest, $subtracted);
+  }
+  
+  public static function di_add($d, $d2)
+  {
+    $d->y += $d2->y;
+    $d->m += $d2->m;
+    $d->d += $d2->d;
+    $d->h += $d2->h;
+    $d->i += $d2->i;
+    $d->s += $d2->s;
+    if ($d->s >= 60) {$d->i += floor($d->s / 60); $d->s %= 60;}
+    if ($d->i >= 60) {$d->h += floor($d->i / 60); $d->i %= 60;}
+    return $d;
   }
 }

@@ -56,6 +56,7 @@ class EntersController
     {
       $col = ExportRecord :: coord_column($key);
       $xs -> SetCellValue("{$col}{$top_row}", $c);
+      $xs -> getColumnDimension($col) -> setAutoSize(true);
       $coord_col[] = $col;
     }
     
@@ -65,7 +66,12 @@ class EntersController
     foreach ($result as $record)
     {
       foreach ($record as $k => $value)
-        $xs -> SetCellValue($coord_col[$k] . $counter, $record[$k]);
+      {
+        $cell = $coord_col[$k] . $counter;
+        $xs -> SetCellValue($cell, $record[$k]);
+        if (preg_match('/:.+:/', $record[$k]))
+          $xs -> getStyle($cell) -> getNumberFormat() -> setFormatCode(PHPExcel_Style_NumberFormat::FORMAT_DATE_TIME4);
+      }
       $counter++;
     }
     
@@ -81,11 +87,13 @@ class EntersController
   protected function fact_filter($user_id, $people, $visits)
   {
     $days = array_keys($visits);
+    $date_start = array_shift($days);
+    $date_end = empty($days) ? $date_start : array_pop($days);
     return array(
       'person' => empty($people[$user_id]) ? '' : $people[$user_id],
       'person_id' => $user_id, 
-      'date_start' => array_shift($days),
-      'date_end' => array_pop($days)
+      'date_start' => $date_start,
+      'date_end' => $date_end
     );
   }
 }

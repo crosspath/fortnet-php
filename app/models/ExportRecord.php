@@ -27,6 +27,7 @@ class ExportRecord
     foreach ($visits as $person => $rows)
     {
       $record = array(null, $person);
+      $sum = null;
       
       foreach ($rows as $row)
       {
@@ -35,9 +36,17 @@ class ExportRecord
         $record[3] = $row['MAX_DATETIME'];
         $record[4] = $row['DIFF'][0];
         $record[5] = $row['DIFF'][1];
-        $record[6] = $row['DIFF'][2];
+        $record[6] = $row['DIFF'][2] -> format('%h:%I:%s');
+        $res[] = $record;
+        $sum = $sum ? Record :: di_add($sum, $row['DIFF'][2]) : $row['DIFF'][2];
       }
-      
+      // sum
+      $record[0] = $row['THIS_DAY'];
+      $record[2] = '';
+      $record[3] = '';
+      $record[4] = '';
+      $record[5] = 'Сумма';
+      $record[6] = $sum -> format('%h:%I:%s');
       $res[] = $record;
     }
     return $res;
