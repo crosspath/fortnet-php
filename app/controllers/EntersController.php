@@ -60,6 +60,8 @@ class EntersController
       $coord_col[] = $col;
     }
     
+    $vis = ExportRecord :: add_empty_rows($vis, $date_start, $date_end);
+    
     $result = ExportRecord :: table($vis);
     $counter = ExportRecord :: $top_row + 1;
     

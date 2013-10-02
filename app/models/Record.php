@@ -127,7 +127,6 @@ class Record
     $last_dt = new DateTime($last);
     
     $diff = $last_dt -> diff($first_dt);
-    $total = $diff -> format('%h:%I');
     if ($diff -> h * 60 + $diff -> i <= 60)
     {
       $subtracted = $diff;
@@ -140,8 +139,11 @@ class Record
       $rest = 1;
     }
     if ($format_diff)
+    {
+      $diff = $diff -> format('%h:%I');
       $subtracted = $subtracted -> format('%h:%I');
-    return array($total, $rest, $subtracted);
+    }
+    return array($diff, $rest, $subtracted);
   }
   
   public static function di_add($d, $d2)
