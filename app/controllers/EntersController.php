@@ -50,38 +50,20 @@ class EntersController
     $x -> setActiveSheetIndex(0);
     $xs = $x -> getActiveSheet();
     
-    $coord_col = array();
-    $top_row = ExportRecord :: $top_row;
-    foreach (ExportRecord :: columns() as $key => $c)
-    {
-      $col = ExportRecord :: coord_column($key);
-      $xs -> SetCellValue("{$col}{$top_row}", $c);
-      $xs -> getColumnDimension($col) -> setAutoSize(true);
-      $coord_col[] = $col;
-    }
+    $ex = new ExportRecord($xs);
+    $ex -> put_columns();
     
-    $vis = ExportRecord :: add_empty_rows($vis, $date_start, $date_end);
+    $vis = $ex -> add_empty_rows($vis, $date_start, $date_end);
+    $result = $ex -> table($vis);
     
-    $result = ExportRecord :: table($vis);
-    $counter = ExportRecord :: $top_row + 1;
-    
-    foreach ($result as $record)
-    {
-      foreach ($record as $k => $value)
-      {
-        $cell = $coord_col[$k] . $counter;
-        $xs -> SetCellValue($cell, $record[$k]);
-        if (preg_match('/:.+:/', $record[$k]))
-          $xs -> getStyle($cell) -> getNumberFormat() -> setFormatCode(PHPExcel_Style_NumberFormat::FORMAT_DATE_TIME4);
-      }
-      $counter++;
-    }
+    $ex -> put_data($result);
     
     $headers = $app -> response() -> headers();
     $headers -> set('Content-Type', 'application/vnd.openxmlformats-offedocument.spreadsheetml.sheet');
     $headers -> set('Content-Disposition', 'attachment;filename="'.$filename.'.xlsx"');
     //$headers -> set('Cache-Control: max-age=0');
     
+    $xs -> setAutoFilter($xs -> calculateWorksheetDimension());
     $w = PHPExcel_IOFactory :: createWriter($x, 'Excel2007');
     echo $w -> save('php://output');
   }

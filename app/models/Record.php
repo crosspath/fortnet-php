@@ -2,6 +2,7 @@
 
 class Record
 {
+  const REST = 1;
   protected $conditions = array();
   
   public static function visits($user_id, $date_start, $date_end, $ppl)
@@ -37,7 +38,7 @@ class Record
     $order = 'USER_ID, THIS_DAY';
     $group = $order;
     $visits = $db -> select("SELECT $select FROM record $where GROUP BY $group ORDER BY $order", $params);
-    self :: work_time_array($visits, false);
+    //self :: work_time_array($visits, false);
     return self :: group_by_person($visits, $ppl);
   }
   
@@ -136,7 +137,7 @@ class Record
     {
       $minus_1h = $last_dt -> sub(DateInterval :: createFromDateString('1 hours'));
       $subtracted = $minus_1h -> diff($first_dt);
-      $rest = 1;
+      $rest = self :: REST;
     }
     if ($format_diff)
     {

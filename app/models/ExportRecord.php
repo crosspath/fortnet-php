@@ -2,9 +2,20 @@
 
 class ExportRecord
 {
+  const CALCULATED_MARKER = '%calculated%';
+  const SUM_MARKER = '%sum%';
+  const TOP_ROW = 1;
   public static $columns;
   
-  public static function columns()
+  public $xs = null;
+  public $coord_col = array();
+  
+  public function __construct(PHPExcel_Worksheet $xs)
+  {
+    $this -> xs = $xs;
+  }
+  
+  public function columns()
   {
     if (empty(self :: $columns))
       self :: $columns = array(
@@ -19,12 +30,57 @@ class ExportRecord
     return self :: $columns;
   }
   
-  public static $top_row = 1;
-  
-  public static function table($visits)
+  public function put_columns()
   {
-    $day = function($full_date) {$date = explode('-', $full_date); return $date[2];}; // только день месяца
-    $time = function($full_date) {$time = explode(' ', $full_date); return $time[1];}; // только время
+    $top_row = self :: TOP_ROW;
+    foreach ($this -> columns() as $key => $c)
+    {
+      $col = $this -> coord_column($key);
+      $this -> xs -> SetCellValue("{$col}{$top_row}", $c);
+      $this -> xs -> getColumnDimension($col) -> setAutoSize(true);
+      $this -> coord_col[] = $col;
+    }
+  }
+  
+  public function put_data(array $result)
+  {
+    $counter = self :: TOP_ROW + 1;
+    $bg_color = $this -> random_color();
+    $first_row_for_person = $counter;
+    $col = $this -> coord_col;
+    
+    foreach ($result as $record) // rows
+    {
+      foreach ($record as $k => $value) // columns/cells
+      {
+        $cell = $col[$k] . $counter;
+        $calculated = $record[$k] == self :: CALCULATED_MARKER;
+        $sum = $record[$k] == self :: SUM_MARKER;
+        
+        if ($calculated)
+          $cell_value = $this -> calculated_cell($k, $counter);
+        elseif ($sum)
+        {
+          $cell_value = $this -> sum_cell($col[$k], $first_row_for_person, $counter-1);
+          $this -> xs -> getStyle($this -> area($first_row_for_person, $counter)) -> applyFromArray(
+            $this -> area_styles($bg_color)
+          );
+          $first_row_for_person = $counter + 1;
+          $bg_color = $this -> random_color();
+        }
+        else
+          $cell_value = $record[$k];
+        
+        $this -> xs -> SetCellValue($cell, $cell_value);
+        if ($calculated || $sum || preg_match('/:.+:/', $record[$k]))
+          $this -> xs -> getStyle($cell) -> getNumberFormat() -> setFormatCode(PHPExcel_Style_NumberFormat::FORMAT_DATE_TIME4);
+      }
+      $counter++;
+    }
+  }
+  
+  public function table($visits)
+  {
     $res = array();
     foreach ($visits as $person => $rows)
     {
@@ -33,10 +89,10 @@ class ExportRecord
       
       foreach ($rows as $row)
       {
-        $record[0] = $day($row['THIS_DAY']);
-        $record[2] = isset($row['MIN_DATETIME']) ? $time($row['MIN_DATETIME']) : '';
-        $record[3] = isset($row['MAX_DATETIME']) ? $time($row['MAX_DATETIME']) : '';
-        if (isset($row['DIFF']))
+        $record[0] = DateFx :: day($row['THIS_DAY']);
+        $record[2] = isset($row['MIN_DATETIME']) ? DateFx :: time($row['MIN_DATETIME']) : '';
+        $record[3] = isset($row['MAX_DATETIME']) ? DateFx :: time($row['MAX_DATETIME']) : '';
+        /*if (isset($row['DIFF']))
         {
           if (is_a($row['DIFF'][0], 'DateInterval'))
             $record[4] = $row['DIFF'][0] -> format('%h:%I:%s');
@@ -46,7 +102,8 @@ class ExportRecord
             $record[6] = $row['DIFF'][2] -> format('%h:%I:%s');
             $sum = $sum ? Record :: di_add($sum, $row['DIFF'][2]) : $row['DIFF'][2];
           }
-        }
+        }*/
+        $record[4] = $record[5] = $record[6] = self :: CALCULATED_MARKER;
         $res[] = $record;
       }
       // sum
@@ -55,53 +112,26 @@ class ExportRecord
       $record[3] = '';
       $record[4] = '';
       $record[5] = t('app.export.sum');
-      $record[6] = $sum ? $sum -> format('%h:%I:%s') : 'н/д';
+      $record[6] = self :: SUM_MARKER; //$sum ? $sum -> format('%h:%I:%s') : 'н/д';
       $res[] = $record;
     }
     return $res;
   }
   
-  public static function coord_column($col)
+  public function coord_column($col)
   {
     $interval = range('A', 'Z');
     $column_times = floor((float)$col / count($interval));
     $column_times_letter = $column_times ? $interval[$column_times-1] : '';
     return $column_times_letter . $interval[$col % count($interval)];
   }
-  /*
-  public static function add_empty_rows($visits, $date_start, $date_finish)
+  
+  public function add_empty_rows($visits, $date_start, $date_finish)
   {
     $res_res = array();
     foreach ($visits as $person => $rows)
     {
-      $res = array();
-      $prev_date = new DateTime($date_start);
-      var_dump($date_start);
-      var_dump($prev_date);
-      echo '<br>**<br>';
-      foreach ($rows as $key => $row)
-      {
-        var_dump(self :: next_date($prev_date));
-        var_dump(new DateTime($row['THIS_DAY']));
-        echo '<br>';
-        for ($i = self :: next_date($prev_date); $i < new DateTime($row['THIS_DAY']); $i = self :: next_date($i))
-          $res[] = array('THIS_DAY' => $i -> format('Y-m-d'));
-        $prev_date = $row['THIS_DAY'];
-        $res[] = $row;
-      }
-      for ($i = self :: next_date($prev_date); $i <= new DateTime($date_finish); $i = self :: next_date($i))
-        $res[] = array('THIS_DAY' => $i -> format('Y-m-d'));
-      $res_res[$person] = $res;
-    }
-    return $res_res;
-  }
-  */
-  public static function add_empty_rows($visits, $date_start, $date_finish)
-  {
-    $res_res = array();
-    foreach ($visits as $person => $rows)
-    {
-      $date_range = self :: date_range($date_start, $date_finish, 'Y-m-d');
+      $date_range = DateFx :: date_range($date_start, $date_finish, 'Y-m-d');
       $res = array();
       foreach ($rows as $key => $row)
       {
@@ -117,27 +147,54 @@ class ExportRecord
     return $res_res;
   }
   
-  public static function array_insert($array, $value, $pos)
+  public function calculated_cell($cell_number, $coord_row)
   {
-    return array_merge(array_slice($array, 0, $pos), (array)$value, array_slice($array, $pos));
+    $col = $this -> coord_col;
+    switch ($cell_number)
+    {
+      case 4:
+        $a = "{$col[3]}$coord_row";
+        $b = "{$col[2]}$coord_row";
+        return "=IF(OR(ISBLANK($a), ISBLANK($b)), \"\", $a-$b)";
+      case 5:
+        $a = "{$col[4]}$coord_row";
+        return "=IFERROR(IF(ISBLANK($a), \"\", IF(HOUR($a) >= 1, \"1\", \"0\") & \":00:00\"), \"\")";
+      case 6:
+        $a = "{$col[4]}$coord_row";
+        $b = "{$col[5]}$coord_row";
+        return "=IF(OR(LEN($a) = 0, ISBLANK($b) = 0), \"\", $a-$b)";
+    }
+    return '';
   }
   
-  protected static function next_date($date)
+  public function sum_cell($col, $coord_row_from, $coord_row_to)
   {
-    if (is_string($date))
-      $date = new DateTime($date);
-    return $date -> add(DateInterval :: createFromDateString('1 days'));
+    return "=SUM({$col}$coord_row_from:{$col}$coord_row_to)";
   }
   
-  protected static function date_range($from, $to, $format = null)
+  public function random_color()
   {
-    $res = array();
-    if (is_string($from))
-      $from = new DateTime($from);
-    if (is_string($to))
-      $to = new DateTime($to);
-    for ($i = $from; $i <= $to; $i = self :: next_date($i))
-      $res[] = $format ? $i -> format($format) : $i;
-    return $res;
+    return 'FF' . strtoupper(dechex(rand(150, 255) << 16 | rand(150, 255) << 8 | rand(150, 255)));
+  }
+  
+  public function area($from, $to)
+  {
+    return ArrayFx :: first($this -> coord_col) . "$from:" . ArrayFx :: last($this -> coord_col) . "$to";
+  }
+  
+  public function area_styles($bg_color)
+  {
+    return array(
+      'fill' => array(
+        'type' => PHPExcel_Style_Fill :: FILL_SOLID,
+        'color' => array('argb' => $bg_color)
+      ),
+      'borders' => array(
+        'inside'	=> array(
+          'style' => PHPExcel_Style_Border::BORDER_THIN,
+          'color' => array('argb' => 'FF888888')
+        )
+      )
+    );
   }
 }
