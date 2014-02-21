@@ -23,7 +23,8 @@ class Db
   protected function __construct()
   {
     $p = require 'config/database.php';
-    $this -> h = ibase_connect($p['database'], $p['username'], $p['password'], 'UTF-8');
+    $enc = isset($p['encoding']) ? $p['encoding'] : 'UTF8';
+    $this -> h = ibase_connect($p['database'], $p['username'], $p['password'], $enc);
   }
   
   public function __destruct()
@@ -63,28 +64,11 @@ class Db
       $a[] = $b;
     return $a;
   }
-  /*
-  Есть в этой функции какая-то ошибка. Сейчас эта функция не используется.
-  Суть ошибки: если выбрать все столбцы (*), но в списке замен указать не все столбцы,
-  то появляется ErrorException(Undefined index: имя_столбца)
-  public static function rename($replace, $array)
-  {
-    $ret = array();
-    foreach ($array as $k => $v)
-      if (is_array($v))
-        $ret[] = self :: rename($replace, $v);
-      else
-        $ret[$replace[$k]] = $v; // тут!
-    return $ret;
-  }
-  */
-  public function select($query, $params = array()/*, $replace = array()*/)
+  
+  public function select($query, $params = array())
   {
     $q = $this -> query($query, $params);
     $f = $this -> fetch_all($q);
-    //var_dump($f);
-    /*if ($replace && count($replace))
-      $f = self :: rename($replace, $f);*/
     return $f;
   }
   

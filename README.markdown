@@ -1,153 +1,83 @@
-# Slim Framework
+# Система пропусков
 
-[![Build Status](https://secure.travis-ci.org/codeguy/Slim.png)](http://travis-ci.org/codeguy/Slim)
+Система пропусков показывает проходы по пропуску и позволяет выгрузить эти записи в Excel.
 
-Slim is a PHP micro framework that helps you quickly write simple yet powerful web applications and APIs.
-Slim is easy to use for both beginners and professionals. Slim favors cleanliness over terseness and common cases
-over edge cases. Its interface is simple, intuitive, and extensively documented — both online and in the code itself.
-Thank you for choosing the Slim Framework for your next project. I think you're going to love it.
+## Порядок регистрации прохода (§1)
 
-## Features
+1. пропуск прислоняют к датчику
+2. датчик отправляет команду системе [Fortnet](http://fortnet.ru)
+3. система Fortnet записывает проход в БД ([Firebird](http://firebirdsql.org))
 
-* Powerful router
-    * Standard and custom HTTP methods
-    * Route parameters with wildcards and conditions
-    * Route redirect, halt, and pass
-    * Route middleware
-* Resource Locator and DI container
-* Template rendering with custom views
-* Flash messages
-* Secure cookies with AES-256 encryption
-* HTTP caching
-* Logging with custom log writers
-* Error handling and debugging
-* Middleware and hook architecture
-* Simple configuration
+## Порядок загрузки страницы со статистикой проходов (§2)
 
-## Getting Started
+1. браузер отправляет запрос на сервер
+2. сервер вызывает php и просит его выполнить файл index.php
+3. файл index.php подключает другие файлы и настраивает среду выполнения
+4. по условиям запроса определяется, какой контроллер и какое действие надо вызвать
+5. условия запроса выступает в роли фильтров выборки данных из БД
+6. получение данных из БД
+7. при необходимости: обработка данных, группировка
+8. отправка результата браузеру
 
-### Install
+## Порядок выгрузки данных для Excel (§3)
 
-You may install the Slim Framework with Composer (recommended) or manually.
+* формирование файла Excel на сервере с Ruby (см. extra/ruby/)
 
-[Read how to install Slim](http://docs.slimframework.com/#Installation)
+  1. браузер отправляет запрос на сервер с Ruby
+  2. скрипт на Ruby вызывает API этой системы для получения статистики проходов
+  3. шаги 2-7 (§2)
+  4. отправка результата Redmine
+  5. формирование файла Excel с данными и стилями
+  6. отправка файла браузеру
 
-### System Requirements
+* формирование файла Excel в этой системе
 
-You need **PHP >= 5.3.0**. If you use encrypted cookies, you'll also need the `mcrypt` extension.
+  1. шаги 1-7 (§2)
+  2. формирование файла Excel с данными и стилями
+  3. отправка файла браузеру
 
-### Hello World Tutorial
+Структура файлов может различаться, поскольку они формируются в разных системах.
 
-Instantiate a Slim application:
+## Настройка
 
-    $app = new \Slim\Slim();
+### Кодировка
 
-Define a HTTP GET route:
+Кодировка по умолчанию - UTF-8. Можно поставить cp1251:
 
-    $app->get('/hello/:name', function ($name) {
-        echo "Hello, $name";
-    });
+1. Заменить "AddDefaultCharset utf-8" на "AddDefaultCharset windows-1251" в файле .htaccess
+2. Изменить кодировку файла config/texts.ini на windows-1251 (может встречаться под названием ANSI)
+3. Добавить/изменить параметр "encoding" в файле config/database.php
 
-Run the Slim application:
+[Названия кодировок в Firebird](http://www.firebirdsql.org/refdocs/langrefupd25-charsets.html)
 
-    $app->run();
+### База данных
 
-### Setup your web server
+Настройки подключения к БД находятся в файле config/database.php
 
-#### Apache
+### Режим отладки
 
-Ensure the `.htaccess` and `index.php` files are in the same public-accessible directory. The `.htaccess` file
-should contain this code:
+По умолчанию при возникновении ошибки появляется сообщение с подробной информацией, в том числе с названиями выполняемых файлов. Вы можете отключить это, изменив параметр DEBUG в файле lib/App.php: ```const DEBUG = false;```
 
-    RewriteEngine On
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^ index.php [QSA,L]
+## Для разработчиков
 
-#### Nginx
+### Кратко об архитектуре
 
-Your nginx configuration file should contain this code (along with other settings you may need) in your `location` block:
+Это приложение использует фреймворк Slim, потому что он легковесный и позволяет снять ряд проблем по маршрутизации, и библиотеку Zepto как лёгкую замену jQuery, к которому все привыкли.
+Источник вдохновения при построении архитектуры - Rails. Автор постарался сделать так, чтобы структура папок и приёмы программирования были близки к таковым в Rails.
+Дополнительными ограничениями в архитектуре были принципы DRY, KISS и YAGNI.
 
-    try_files $uri $uri/ /index.php?$args;
+Функция t - сокращение для функции Text::get, возвращающей текст из файла config/texts.ini.
+$h в шаблонах - экземпляр класса Helper, содержащего все функции из хелперов в папке app/helpers/.
 
-This assumes that Slim's `index.php` is in the root folder of your project (www root).
+### TODO
 
-#### lighttpd ####
-
-Your lighttpd configuration file should contain this code (along with other settings you may need). This code requires
-lighttpd >= 1.4.24.
-
-    url.rewrite-if-not-file = ("(.*)" => "/index.php/$0")
-
-This assumes that Slim's `index.php` is in the root folder of your project (www root).
-
-#### IIS
-
-Ensure the `Web.config` and `index.php` files are in the same public-accessible directory. The `Web.config` file should contain this code:
-
-    <?xml version="1.0" encoding="UTF-8"?>
-    <configuration>
-        <system.webServer>
-            <rewrite>
-                <rules>
-                    <rule name="slim" patternSyntax="Wildcard">
-                        <match url="*" />
-                        <conditions>
-                            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-                            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-                        </conditions>
-                        <action type="Rewrite" url="index.php" />
-                    </rule>
-                </rules>
-            </rewrite>
-        </system.webServer>
-    </configuration>
-
-## Documentation
-
-<http://docs.slimframework.com/>
-
-## How to Contribute
-
-### Pull Requests
-
-1. Fork the Slim Framework repository
-2. Create a new branch for each feature or improvement
-3. Send a pull request from each feature branch to the **develop** branch
-
-It is very important to separate new features or improvements into separate feature branches, and to send a pull
-request for each branch. This allows me to review and pull in new features or improvements individually.
-
-### Style Guide
-
-All pull requests must adhere to the [PSR-2](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-2-coding-style-guide.md) standard.
-
-### Unit Testing
-
-All pull requests must be accompanied by passing unit tests and complete code coverage. The Slim Framework uses
-`phpunit` for testing.
-
-[Learn about PHPUnit](https://github.com/sebastianbergmann/phpunit/)
-
-## Community
-
-### Forum and Knowledgebase
-
-Visit Slim's official forum and knowledge base at <http://help.slimframework.com> where you can find announcements,
-chat with fellow Slim users, ask questions, help others, or show off your cool Slim Framework apps.
-
-### Twitter
-
-Follow [@slimphp](http://www.twitter.com/slimphp) on Twitter to receive news and updates about the framework.
-
-## Author
-
-The Slim Framework is created and maintained by [Josh Lockhart](https://www.joshlockhart.com). Josh is a senior
-web developer at [New Media Campaigns](http://www.newmediacampaigns.com/). Josh also created and maintains
-[PHP: The Right Way](http://www.phptherightway.com/), a popular movement in the PHP community to introduce new
-PHP programmers to best practices and good information.
-
-## License
-
-The Slim Framework is released under the MIT public license.
-
-<http://www.slimframework.com/license>
+* Сделать код ещё легче и быстрее.
+* Если это приложение будет использовать кто-то, кто не понимает по-русски, то можно:
+  * простой способ - перевести config/texts.ini
+  * посложнее - добавить язык в какой-нибудь конфигурационный файл, перевести config/texts.ini и положить файлы с текстами в config/locales/, например config/locales/ru.ini
+* Упростить изменение кодировки:
+  * Добавить выбор кодировки в какой-нибудь конфигурационный файл.
+  * Передавать header(Charset) в соответствие с указанной кодировкой; убрать строку "AddDefaultCharset" из .htaccess.
+  * Добавить в Text::get изменение кодировки текста в соответствие с указанной кодировкой.
+* Добавить конфигурационный файл config/app.ini для хранения значений "язык", "кодировка" (см. пункты выше) и "debug".
+* Сейчас в системе есть только один шаблон. Когда будет больше шаблонов, надо будет добавить папку app/views/layouts/ и хранить в ней layout; переопределить в классе App функцию render, добавив загрузку layout.

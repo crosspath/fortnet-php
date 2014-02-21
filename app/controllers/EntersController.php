@@ -20,11 +20,16 @@ class EntersController
     $ppl = Person :: all();
     $vis = Record :: visits($user_id, $date_start, $date_end, $ppl);
     
+    $filter = array(
+      'person_id' => $user_id, 'person_name' => $user_id ? $ppl[$user_id] : null,
+      'date_start' => $date_start, 'date_end' => $date_end
+    );
+    
     $app -> render('enters/index.php', array(
       'people' => $ppl,
       'visits' => $vis,
-      'filter' => array('person' => $user_id, 'date_start' => $date_start, 'date_end' => $date_end),
-      'fact_filter' => $this -> fact_filter($user_id, $ppl, $vis)
+      'filter' => $filter//,
+      //'fact_filter' => $this -> fact_filter($user_id, $ppl, $vis)
     ));
   }
   
@@ -68,7 +73,7 @@ class EntersController
     echo $w -> save('php://output');
   }
   
-  protected function fact_filter($user_id, $people, $visits)
+  /*protected function fact_filter($user_id, $people, $visits)
   {
     $days = array_keys($visits);
     $date_start = array_shift($days);
@@ -79,5 +84,5 @@ class EntersController
       'date_start' => $date_start,
       'date_end' => $date_end
     );
-  }
+  }*/
 }

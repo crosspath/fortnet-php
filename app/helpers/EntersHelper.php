@@ -4,7 +4,7 @@ class EntersHelper
 {
   public function export($f)
   {
-    $person = $f['person'] ? "---{$f['person']}" : '';
+    $person = $f['person_name'] ? "---{$f['person_name']}" : '';
     return "{$f['date_start']}---{$f['date_end']}{$person}.xlsx";
   }
   

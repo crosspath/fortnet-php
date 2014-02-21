@@ -10,7 +10,11 @@ class App
   {
     self :: register_autoloader();
     \Slim\Slim :: registerAutoloader();
-    $this -> backend = new \Slim\Slim(array('debug' => self :: DEBUG, 'templates.path' => 'app/views'));
+    $this -> backend = new \Slim\Slim(array(
+      'debug' => self :: DEBUG,
+      'templates.path' => 'app/views',
+      'view' => 'ExtendedView'
+    ));
     Text :: read();
   }
   
