@@ -41,7 +41,7 @@ class ExportRecord
       $this -> coord_col[] = $col;
     }
   }
-  
+  /*
   public function put_data(array $result)
   {
     $counter = self :: TOP_ROW + 1;
@@ -78,33 +78,48 @@ class ExportRecord
       $counter++;
     }
   }
-  
-  public function table($visits)
+  */
+  public function prepare_first_4_fields($visits)
   {
     $res = array();
     foreach ($visits as $person => $rows)
     {
       $record = array(null, $person);
-      $sum = null;
-      
+      $res[$person] = array();
       foreach ($rows as $row)
       {
         $record[0] = DateFx :: day($row['THIS_DAY']);
         $record[2] = isset($row['MIN_DATETIME']) ? DateFx :: time($row['MIN_DATETIME']) : '';
         $record[3] = isset($row['MAX_DATETIME']) ? DateFx :: time($row['MAX_DATETIME']) : '';
-        /*if (isset($row['DIFF']))
-        {
-          if (is_a($row['DIFF'][0], 'DateInterval'))
-            $record[4] = $row['DIFF'][0] -> format('%h:%I:%s');
-          $record[5] = $row['DIFF'][1] . ':00';
-          if (is_a($row['DIFF'][2], 'DateInterval'))
-          {
-            $record[6] = $row['DIFF'][2] -> format('%h:%I:%s');
-            $sum = $sum ? Record :: di_add($sum, $row['DIFF'][2]) : $row['DIFF'][2];
-          }
-        }*/
-        $record[4] = $record[5] = $record[6] = self :: CALCULATED_MARKER;
-        $res[] = $record;
+        $res[$person][] = $record;
+      }
+    }
+    return $res;
+  }
+  
+  public function put_data($result)
+  {
+    $res = array();
+    $counter = self :: TOP_ROW + 1;
+    $bg_color = $this -> random_color();
+    $first_row_for_person = $counter;
+    $col = $this -> coord_col;
+    
+    foreach ($result as $rows)
+    {
+      foreach ($rows as $row)
+      {
+        $a = "{$col[3]}$counter";
+        $b = "{$col[2]}$counter";
+        $row[4] = "=IF(OR(ISBLANK($a), ISBLANK($b)), \"\", $a-$b)";
+        $a = "{$col[4]}$counter";
+        $row[5] = "=IFERROR(IF(ISBLANK($a), \"\", IF(HOUR($a) >= 1, \"1\", \"0\") & \":00:00\"), \"\")";
+        $a = "{$col[4]}$counter";
+        $b = "{$col[5]}$counter";
+        $row[6] = "=IF(OR(LEN($a) = 0, ISBLANK($b) = 0), \"\", $a-$b)";
+        
+        $res[] = $row;
+        $counter++;
       }
       // sum
       $record[0] = '';
@@ -112,10 +127,13 @@ class ExportRecord
       $record[3] = '';
       $record[4] = '';
       $record[5] = t('app.export.sum');
-      $record[6] = self :: SUM_MARKER; //$sum ? $sum -> format('%h:%I:%s') : 'н/д';
+      $record[6] = $this -> sum_cell($col[6], $first_row_for_person, $counter);
       $res[] = $record;
+      
+      $first_row_for_person = $counter + 1;
+      $bg_color = $this -> random_color();
     }
-    return $res;
+    $this -> xs -> fromArray($res, null, 'A'.(self :: TOP_ROW + 1));
   }
   
   public function coord_column($col)

@@ -6,10 +6,12 @@ class ApiController
   public function visits()
   {
     $app = App :: get_app();
+    $ = $app -> request();
     
-    $date_start = $app -> request() -> get('date_start');
-    $date_end = $app -> request() -> get('date_end');
-    $user_ids = $app -> request() -> get('person');
+    $date_start = $r -> get('date_start');
+    $date_end = $r -> get('date_end');
+    $user_ids = $r -> get('person');
+    
     if (is_null($date_start) || is_null($date_end) || is_null($user_ids))
       return $this -> wrap('error', 'Expected arguments: date_start, date_end, person');
     

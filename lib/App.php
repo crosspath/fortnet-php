@@ -4,18 +4,19 @@ class App
 {
   private static $instance = null;
   private $backend = null;
-  const DEBUG = true;
+  protected $ini = null;
+  const INI_FILE = 'config/app.ini';
   
   private function __construct($params = array())
   {
     self :: register_autoloader();
     \Slim\Slim :: registerAutoloader();
     $this -> backend = new \Slim\Slim(array(
-      'debug' => self :: DEBUG,
+      'debug' => $this -> conf('debug'),
       'templates.path' => 'app/views',
       'view' => 'ExtendedView'
     ));
-    Text :: read();
+    App :: autoload('Text');
   }
   
   public static function get_app()
@@ -23,6 +24,13 @@ class App
     if (!self :: $instance)
       self :: $instance = new self();
     return self :: $instance;
+  }
+  
+  public function conf($key)
+  {
+    if ($this -> ini === null)
+      $this -> ini = new Ini(self :: INI_FILE);
+    return $this -> ini -> get($key);
   }
   
   private static function register_autoloader()

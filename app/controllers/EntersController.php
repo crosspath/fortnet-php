@@ -28,8 +28,7 @@ class EntersController
     $app -> render('enters/index.php', array(
       'people' => $ppl,
       'visits' => $vis,
-      'filter' => $filter//,
-      //'fact_filter' => $this -> fact_filter($user_id, $ppl, $vis)
+      'filter' => $filter
     ));
   }
   
@@ -56,33 +55,25 @@ class EntersController
     $xs = $x -> getActiveSheet();
     
     $ex = new ExportRecord($xs);
-    $ex -> put_columns();
     
     $vis = $ex -> add_empty_rows($vis, $date_start, $date_end);
-    $result = $ex -> table($vis);
+    $result = $ex -> prepare_first_4_fields($vis);
     
-    $ex -> put_data($result);
-    
-    $headers = $app -> response() -> headers();
-    $headers -> set('Content-Type', 'application/vnd.openxmlformats-offedocument.spreadsheetml.sheet');
-    $headers -> set('Content-Disposition', 'attachment;filename="'.$filename.'.xlsx"');
-    //$headers -> set('Cache-Control: max-age=0');
-    
-    $xs -> setAutoFilter($xs -> calculateWorksheetDimension());
-    $w = PHPExcel_IOFactory :: createWriter($x, 'Excel2007');
-    echo $w -> save('php://output');
+    if ($app -> conf('export'))
+      echo json_encode(array('visits' => $result));
+    else
+    {
+      $ex -> put_columns();
+      $ex -> put_data($result);
+      
+      $headers = $app -> response() -> headers();
+      $headers -> set('Content-Type', 'application/vnd.openxmlformats-offedocument.spreadsheetml.sheet');
+      $headers -> set('Content-Disposition', 'attachment;filename="'.$filename.'.xlsx"');
+      //$headers -> set('Cache-Control: max-age=0');
+      
+      $xs -> setAutoFilter($xs -> calculateWorksheetDimension());
+      $w = PHPExcel_IOFactory :: createWriter($x, 'Excel2007');
+      echo $w -> save('php://output');
+    }
   }
-  
-  /*protected function fact_filter($user_id, $people, $visits)
-  {
-    $days = array_keys($visits);
-    $date_start = array_shift($days);
-    $date_end = empty($days) ? $date_start : array_pop($days);
-    return array(
-      'person' => empty($people[$user_id]) ? '' : $people[$user_id],
-      'person_id' => $user_id, 
-      'date_start' => $date_start,
-      'date_end' => $date_end
-    );
-  }*/
 }

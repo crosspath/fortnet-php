@@ -4,8 +4,11 @@ class EntersHelper
 {
   public function export($f)
   {
+    $app = App :: get_app();
+    $prefix = $app -> conf('export');
+    
     $person = $f['person_name'] ? "---{$f['person_name']}" : '';
-    return "{$f['date_start']}---{$f['date_end']}{$person}.xlsx";
+    return "$prefix{$f['date_start']}---{$f['date_end']}{$person}.xlsx";
   }
   
   public function extract_time($v)

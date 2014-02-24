@@ -1,5 +1,5 @@
 <?php
-require 'lib/app.php';
+require 'lib/App.php';
 $app = App :: get_app();
 
 $app -> get('/', Route :: act('Enters#index'));
