@@ -38,8 +38,46 @@ class Record
     $order = 'USER_ID, THIS_DAY';
     $group = $order;
     $visits = $db -> select("SELECT $select FROM record $where GROUP BY $group ORDER BY $order", $params);
-    //self :: work_time_array($visits, false);
     return self :: group_by_person($visits, $ppl);
+  }
+  
+  public static function add_empty_rows($visits, $date_start, $date_finish)
+  {
+    $res_res = array();
+    foreach ($visits as $person => $rows)
+    {
+      $date_range = DateFx :: date_range($date_start, $date_finish, 'Y-m-d');
+      $res = array();
+      foreach ($rows as $key => $row)
+      {
+        while ($row['THIS_DAY'] != $date_range[0])
+          $res[] = array('THIS_DAY' => array_shift($date_range));
+        $res[] = $row;
+        array_shift($date_range);
+      }
+      foreach ($date_range as $date)
+          $res[] = array('THIS_DAY' => $date);
+      $res_res[$person] = $res;
+    }
+    return $res_res;
+  }
+  
+  public static function prepare_for_export($visits)
+  {
+    $res = array();
+    foreach ($visits as $person => $rows)
+    {
+      $record = array(null, $person);
+      $res[$person] = array();
+      foreach ($rows as $row)
+      {
+        $record[0] = DateFx :: day($row['THIS_DAY']);
+        $record[2] = isset($row['MIN_DATETIME']) ? DateFx :: time($row['MIN_DATETIME']) : '';
+        $record[3] = isset($row['MAX_DATETIME']) ? DateFx :: time($row['MAX_DATETIME']) : '';
+        $res[$person][] = $record;
+      }
+    }
+    return $res;
   }
   
   protected static function visits_filter($user_id, $date_start, $date_end)
@@ -103,10 +141,7 @@ class Record
       self :: array_array($vis, $name);
       $vis[$name][] = $row;
     }
-    /*foreach ($vis as $day => &$people)
-      ksort($people);*/
     ksort($vis);
-    //var_dump($vis);die();
     return $vis;
   }
   

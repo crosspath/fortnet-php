@@ -27,24 +27,6 @@ class ExportRecord
     $this -> xs -> fromArray($columns, null, 'A1');
   }
   
-  public function prepare_first_4_fields($visits)
-  {
-    $res = array();
-    foreach ($visits as $person => $rows)
-    {
-      $record = array(null, $person);
-      $res[$person] = array();
-      foreach ($rows as $row)
-      {
-        $record[0] = DateFx :: day($row['THIS_DAY']);
-        $record[2] = isset($row['MIN_DATETIME']) ? DateFx :: time($row['MIN_DATETIME']) : '';
-        $record[3] = isset($row['MAX_DATETIME']) ? DateFx :: time($row['MAX_DATETIME']) : '';
-        $res[$person][] = $record;
-      }
-    }
-    return $res;
-  }
-  
   public function put_data($result)
   {
     $counter = self :: TOP_ROW + 1;
@@ -103,27 +85,6 @@ class ExportRecord
       $this -> calc_sum('H', $from, $to),
       $this -> calc_sum('I', $from, $to)
     );
-  }
-  
-  public function add_empty_rows($visits, $date_start, $date_finish)
-  {
-    $res_res = array();
-    foreach ($visits as $person => $rows)
-    {
-      $date_range = DateFx :: date_range($date_start, $date_finish, 'Y-m-d');
-      $res = array();
-      foreach ($rows as $key => $row)
-      {
-        while ($row['THIS_DAY'] != $date_range[0])
-          $res[] = array('THIS_DAY' => array_shift($date_range));
-        $res[] = $row;
-        array_shift($date_range);
-      }
-      foreach ($date_range as $date)
-          $res[] = array('THIS_DAY' => $date);
-      $res_res[$person] = $res;
-    }
-    return $res_res;
   }
   
   public function calc_diff($counter)

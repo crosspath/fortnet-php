@@ -25,11 +25,7 @@ class EntersController
       'date_start' => $date_start, 'date_end' => $date_end
     );
     
-    $app -> render('enters/index.php', array(
-      'people' => $ppl,
-      'visits' => $vis,
-      'filter' => $filter
-    ));
+    $app -> render('enters/index.php', array('people' => $ppl, 'visits' => $vis, 'filter' => $filter));
   }
   
   public function export($filename)
@@ -49,20 +45,19 @@ class EntersController
       $user_id = null;
     
     $vis = Record :: visits_group_by_person($user_id, $date_start, $date_end, Person :: all());
-    
-    $x = new PHPExcel();
-    $x -> setActiveSheetIndex(0);
-    $xs = $x -> getActiveSheet();
-    
-    $ex = new ExportRecord($xs);
-    
-    $vis = $ex -> add_empty_rows($vis, $date_start, $date_end);
-    $result = $ex -> prepare_first_4_fields($vis);
+    $vis = Record :: add_empty_rows($vis, $date_start, $date_end);
+    $result = Record :: prepare_for_export($vis);
     
     if ($app -> conf('export'))
       echo json_encode(array('visits' => $result));
     else
     {
+      $x = new PHPExcel();
+      $x -> setActiveSheetIndex(0);
+      $xs = $x -> getActiveSheet();
+      
+      $ex = new ExportRecord($xs);
+      
       $ex -> put_data($result);
       
       $headers = $app -> response() -> headers();
