@@ -3,7 +3,7 @@
 class App
 {
   private static $instance = null;
-  private $backend = null;
+  private $backend = null, $route_mgr = null;
   protected $ini = null;
   const INI_FILE = 'config/app.ini';
   
@@ -16,6 +16,7 @@ class App
       'templates.path' => 'app/views',
       'view' => 'ExtendedView'
     ));
+    $this -> route_mgr = new RouteManager($this -> backend);
     App :: autoload('Text');
   }
   
@@ -69,9 +70,13 @@ class App
   // delegate to $backend
   public function __call($name, $arguments)
   {
-    $callback = array($this -> backend, $name);
+    $callback = array($this -> route_mgr, $name);
     if (!is_callable($callback))
-      throw new E\Callable(t('exception.callable.not_callable', array('function' => $name, 'obj' => 'Slim\Slim')));
+    {
+      $callback = array($this -> backend, $name);
+      if (!is_callable($callback))
+        throw new E\Callable(t('exception.callable.not_callable', array('function' => $name, 'obj' => 'Slim\Slim')));
+    }
     return call_user_func_array($callback, $arguments);
   }
   

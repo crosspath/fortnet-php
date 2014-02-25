@@ -63,7 +63,6 @@ class EntersController
       echo json_encode(array('visits' => $result));
     else
     {
-      $ex -> put_columns();
       $ex -> put_data($result);
       
       $headers = $app -> response() -> headers();
@@ -71,7 +70,6 @@ class EntersController
       $headers -> set('Content-Disposition', 'attachment;filename="'.$filename.'.xlsx"');
       //$headers -> set('Cache-Control: max-age=0');
       
-      $xs -> setAutoFilter($xs -> calculateWorksheetDimension());
       $w = PHPExcel_IOFactory :: createWriter($x, 'Excel2007');
       echo $w -> save('php://output');
     }

@@ -2,83 +2,31 @@
 
 class ExportRecord
 {
-  const CALCULATED_MARKER = '%calculated%';
-  const SUM_MARKER = '%sum%';
   const TOP_ROW = 1;
-  public static $columns;
-  
   public $xs = null;
-  public $coord_col = array();
   
   public function __construct(PHPExcel_Worksheet $xs)
   {
     $this -> xs = $xs;
   }
   
-  public function columns()
-  {
-    if (empty(self :: $columns))
-      self :: $columns = array(
-        t('app.export.col_date'),
-        t('app.export.col_name'),
-        t('app.export.col_in'),
-        t('app.export.col_out'),
-        t('app.export.col_diff'),
-        t('app.export.col_lunch'),
-        t('app.export.col_res')
-      );
-    return self :: $columns;
-  }
-  
   public function put_columns()
   {
+    $columns = array(
+      t('app.export.col_date'),
+      t('app.export.col_name'),
+      t('app.export.col_in'),
+      t('app.export.col_out'),
+      t('app.export.col_diff'),
+      t('app.export.col_lunch'),
+      t('app.export.col_res'),
+      t('app.export.col_fulltime'),
+      t('app.export.col_salary')
+    );
     $top_row = self :: TOP_ROW;
-    foreach ($this -> columns() as $key => $c)
-    {
-      $col = $this -> coord_column($key);
-      $this -> xs -> SetCellValue("{$col}{$top_row}", $c);
-      $this -> xs -> getColumnDimension($col) -> setAutoSize(true);
-      $this -> coord_col[] = $col;
-    }
+    $this -> xs -> fromArray($columns, null, 'A1');
   }
-  /*
-  public function put_data(array $result)
-  {
-    $counter = self :: TOP_ROW + 1;
-    $bg_color = $this -> random_color();
-    $first_row_for_person = $counter;
-    $col = $this -> coord_col;
-    
-    foreach ($result as $record) // rows
-    {
-      foreach ($record as $k => $value) // columns/cells
-      {
-        $cell = $col[$k] . $counter;
-        $calculated = $record[$k] == self :: CALCULATED_MARKER;
-        $sum = $record[$k] == self :: SUM_MARKER;
-        
-        if ($calculated)
-          $cell_value = $this -> calculated_cell($k, $counter);
-        elseif ($sum)
-        {
-          $cell_value = $this -> sum_cell($col[$k], $first_row_for_person, $counter-1);
-          $this -> xs -> getStyle($this -> area($first_row_for_person, $counter)) -> applyFromArray(
-            $this -> area_styles($bg_color)
-          );
-          $first_row_for_person = $counter + 1;
-          $bg_color = $this -> random_color();
-        }
-        else
-          $cell_value = $record[$k];
-        
-        $this -> xs -> SetCellValue($cell, $cell_value);
-        if ($calculated || $sum || preg_match('/:.+:/', $record[$k]))
-          $this -> xs -> getStyle($cell) -> getNumberFormat() -> setFormatCode(PHPExcel_Style_NumberFormat::FORMAT_DATE_TIME4);
-      }
-      $counter++;
-    }
-  }
-  */
+  
   public function prepare_first_4_fields($visits)
   {
     $res = array();
@@ -99,49 +47,62 @@ class ExportRecord
   
   public function put_data($result)
   {
-    $res = array();
     $counter = self :: TOP_ROW + 1;
-    $bg_color = $this -> random_color();
-    $first_row_for_person = $counter;
-    $col = $this -> coord_col;
     
-    foreach ($result as $rows)
+    $this -> xs -> getDefaultStyle() -> applyFromArray(
+      array('font' => array('name' => 'Arial', 'size' => 11))
+    );
+    for ($col = ord('A'), $c = ord('I'); $col < $c; $col++)
+      $this -> xs -> getColumnDimension(chr($col)) -> setAutoSize(true);
+    $this -> put_columns();
+    
+    foreach ($result as $person => $rows)
     {
+      $first_row_for_person = $counter;
+      $res = array();
+      $res[] = $this -> info_row($person, $first_row_for_person);
+      $counter++;
+      
       foreach ($rows as $row)
       {
-        $a = "{$col[3]}$counter";
-        $b = "{$col[2]}$counter";
-        $row[4] = "=IF(OR(ISBLANK($a), ISBLANK($b)), \"\", $a-$b)";
-        $a = "{$col[4]}$counter";
-        $row[5] = "=IFERROR(IF(ISBLANK($a), \"\", IF(HOUR($a) >= 1, \"1\", \"0\") & \":00:00\"), \"\")";
-        $a = "{$col[4]}$counter";
-        $b = "{$col[5]}$counter";
-        $row[6] = "=IF(OR(LEN($a) = 0, ISBLANK($b) = 0), \"\", $a-$b)";
-        
-        $res[] = $row;
+        $res[] = $this -> calc_row($row, $first_row_for_person, $counter);
         $counter++;
       }
-      // sum
-      $record[0] = '';
-      $record[2] = '';
-      $record[3] = '';
-      $record[4] = '';
-      $record[5] = t('app.export.sum');
-      $record[6] = $this -> sum_cell($col[6], $first_row_for_person, $counter);
-      $res[] = $record;
+      $res[] = $this -> calc_sum_row($person, $first_row_for_person, $counter-1);
       
-      $first_row_for_person = $counter + 1;
-      $bg_color = $this -> random_color();
+      $this -> xs -> fromArray($res, null, "A$first_row_for_person");
+      $this -> add_styles($first_row_for_person, $counter);
+      $counter++;
     }
-    $this -> xs -> fromArray($res, null, 'A'.(self :: TOP_ROW + 1));
+    
+    $this -> xs -> setAutoFilter($this -> xs -> calculateWorksheetDimension());
   }
   
-  public function coord_column($col)
+  public function info_row($person, $c)
   {
-    $interval = range('A', 'Z');
-    $column_times = floor((float)$col / count($interval));
-    $column_times_letter = $column_times ? $interval[$column_times-1] : '';
-    return $column_times_letter . $interval[$col % count($interval)];
+    return array(
+      '', $person, t('app.export.salary'), '0', t('app.export.salary_hour'), "=IFERROR(D$c/22/8, 0)", '', '', ''
+    );
+  }
+  
+  public function calc_row($row, $first_row_for_person, $counter)
+  {
+    $row[] = $this -> calc_diff($counter);
+    $row[] = $this -> calc_rest($counter);
+    $row[] = $this -> calc_res($counter);
+    $row[] = '="8:00:00"-"0"';
+    $row[] = $this -> calc_salary($first_row_for_person, $counter);
+    return $row;
+  }
+  
+  public function calc_sum_row($person, $from, $to)
+  {
+    return array(
+      '', $person, '', '', '', t('app.export.sum'),
+      $this -> calc_sum('G', $from, $to),
+      $this -> calc_sum('H', $from, $to),
+      $this -> calc_sum('I', $from, $to)
+    );
   }
   
   public function add_empty_rows($visits, $date_start, $date_finish)
@@ -165,39 +126,41 @@ class ExportRecord
     return $res_res;
   }
   
-  public function calculated_cell($cell_number, $coord_row)
+  public function calc_diff($counter)
   {
-    $col = $this -> coord_col;
-    switch ($cell_number)
-    {
-      case 4:
-        $a = "{$col[3]}$coord_row";
-        $b = "{$col[2]}$coord_row";
-        return "=IF(OR(ISBLANK($a), ISBLANK($b)), \"\", $a-$b)";
-      case 5:
-        $a = "{$col[4]}$coord_row";
-        return "=IFERROR(IF(ISBLANK($a), \"\", IF(HOUR($a) >= 1, \"1\", \"0\") & \":00:00\"), \"\")";
-      case 6:
-        $a = "{$col[4]}$coord_row";
-        $b = "{$col[5]}$coord_row";
-        return "=IF(OR(LEN($a) = 0, ISBLANK($b) = 0), \"\", $a-$b)";
-    }
-    return '';
+    $a = "D$counter";
+    $b = "C$counter";
+    return "=IF(OR(LEN($a)=0, LEN($b)=0), \"\", $a-$b)";
   }
   
-  public function sum_cell($col, $coord_row_from, $coord_row_to)
+  public function calc_rest($counter)
   {
-    return "=SUM({$col}$coord_row_from:{$col}$coord_row_to)";
+    $a = "E$counter";
+    return "=IFERROR(IF(LEN($a)=0, \"\", IF(HOUR($a) >= 1, \"1\", \"0\") & \":00:00\"), \"\")";
+  }
+  
+  public function calc_res($counter)
+  {
+    $a = "E$counter";
+    $b = "F$counter";
+    return "=IF(OR(LEN($a) = 0, LEN($b) = 0), \"\", $a-$b)";
+  }
+  
+  public function calc_sum($col, $from, $to)
+  {
+    return "=SUM({$col}$from:{$col}$to)";
+  }
+  
+  public function calc_salary($first_row_for_person, $counter)
+  {
+    $base = '$F$'.$first_row_for_person;
+    $time = "G$counter";
+    return "=IF(OR(ISBLANK($time),$time=\"\"),\"\",$base*(HOUR($time)+MINUTE($time)/60+SECOND($time)/3600))";
   }
   
   public function random_color()
   {
     return 'FF' . strtoupper(dechex(rand(150, 255) << 16 | rand(150, 255) << 8 | rand(150, 255)));
-  }
-  
-  public function area($from, $to)
-  {
-    return ArrayFx :: first($this -> coord_col) . "$from:" . ArrayFx :: last($this -> coord_col) . "$to";
   }
   
   public function area_styles($bg_color)
@@ -208,11 +171,26 @@ class ExportRecord
         'color' => array('argb' => $bg_color)
       ),
       'borders' => array(
-        'inside'	=> array(
+        'allborders'	=> array(
           'style' => PHPExcel_Style_Border::BORDER_THIN,
           'color' => array('argb' => 'FF888888')
         )
       )
     );
+  }
+  
+  public function add_styles($from, $to)
+  {
+    $only_color = $this -> area_styles($this -> random_color());
+    $this -> xs -> getStyle("A$from:I$to") -> applyFromArray($only_color);
+    
+    $ffrom = $from+1;
+    $tto = $to-1;
+    $time = array('numberformat' => array('code' => '[h]:mm:ss'));
+    $this -> xs -> getStyle("C$ffrom:H$tto") -> applyFromArray($time);
+    $this -> xs -> getStyle("G$to:H$to") -> applyFromArray($time);
+    
+    $money = array('numberformat' => array('code' => '#,##0.00"р"\.'));
+    $this -> xs -> getStyle("I$from:I$to") -> applyFromArray($money);
   }
 }
