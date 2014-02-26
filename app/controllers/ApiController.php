@@ -6,7 +6,7 @@ class ApiController
   public function visits()
   {
     $app = App :: get_app();
-    $ = $app -> request();
+    $r = $app -> request();
     
     $date_start = $r -> get('date_start');
     $date_end = $r -> get('date_end');
