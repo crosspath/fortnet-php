@@ -59,4 +59,10 @@ class RouteManager
     $args = func_get_args();
     return $this->mapRoute($args)->via(\Slim\Http\Request::METHOD_OPTIONS);
   }
+  
+  public function any()
+  {
+    $args = func_get_args();
+    return $this->mapRoute($args)->via("ANY");
+  }
 }
