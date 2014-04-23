@@ -2,8 +2,8 @@
 
 Система пропусков показывает проходы по пропуску и позволяет выгрузить эти записи в Excel.
 
-![pic1](https://github.com/crosspath/fortnet-php/blob/master/pic1.png)
-![pic2](https://github.com/crosspath/fortnet-php/blob/master/pic1.png)
+![pic1](https://github.com/crosspath/fortnet-php/raw/master/pic1.png)
+![pic2](https://github.com/crosspath/fortnet-php/raw/master/pic2.png)
 
 ## Порядок регистрации прохода (§1)
 
